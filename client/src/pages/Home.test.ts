@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayKey, formatTime, shiftDay } from "./Home";
+import { dayKey, formatTime, shiftDay } from "./calendarUtils";
 
 describe("Athenaeum school-hub scheduling helpers", () => {
   it("creates local calendar keys without a timezone timestamp", () => {

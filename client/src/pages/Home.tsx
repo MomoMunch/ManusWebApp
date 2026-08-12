@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import "./day-view.css";
+import { dayKey, formatDay, formatTime, fromKey, shiftDay } from "./calendarUtils";
 
 const BRAND_MARK = "/manus-storage/athenaeum-book-leaf-mark_77cfcc0c.png";
 const DESK_TEXTURE = "/manus-storage/athenaeum-reading-room-texture_e7f1ab5b.jpg";
@@ -47,31 +48,6 @@ const categoryStyles: Record<Category, { color: string; wash: string }> = {
   Activity: { color: "#6B4C6E", wash: "#E9DDEA" },
   Other: { color: "#5D6671", wash: "#E3E7EA" },
 };
-
-export function dayKey(value = new Date()) {
-  const local = new Date(value.getTime() - value.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
-}
-
-function fromKey(value: string) {
-  return new Date(`${value}T12:00:00`);
-}
-
-export function shiftDay(days: number, base = new Date()) {
-  const next = new Date(base);
-  next.setDate(next.getDate() + days);
-  return dayKey(next);
-}
-
-function formatDay(value: string, options: Intl.DateTimeFormatOptions = { weekday: "long", month: "long", day: "numeric" }) {
-  return fromKey(value).toLocaleDateString("en-US", options);
-}
-
-export function formatTime(value: string) {
-  if (!value) return "Any time";
-  const [hour, minute] = value.split(":").map(Number);
-  return new Date(2000, 0, 1, hour, minute).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-}
 
 function makeId() {
   return `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

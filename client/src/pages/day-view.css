@@ -1,0 +1,32 @@
+.day-paper {
+  min-height: 430px;
+  padding: 23px;
+  border: 1px solid #E4D8C2;
+  border-radius: 20px;
+  background: rgba(252, 248, 239, .95);
+  box-shadow: 0 4px 13px rgba(73, 57, 32, .035);
+}
+
+.day-view-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.day-view-head h2 {
+  margin: 4px 0 0;
+  font: 500 30px/1.1 "Fraunces", Georgia, serif;
+  letter-spacing: -.025em;
+}
+
+.day-view-rule {
+  height: 1px;
+  margin: 20px 0 5px;
+  background: linear-gradient(90deg, #CDA459, #E9DDC8 70%, transparent);
+}
+
+@media (max-width: 720px) {
+  .day-paper { min-height: 340px; padding: 17px; }
+  .day-view-head h2 { font-size: 25px; }
+}

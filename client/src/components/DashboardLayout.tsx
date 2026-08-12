@@ -21,15 +21,17 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { CalendarDays, LayoutDashboard, ListTodo, LogOut, PanelLeft, Settings2 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: LayoutDashboard, label: "My Day", path: "/" },
+  { icon: CalendarDays, label: "Calendar", path: "/calendar" },
+  { icon: ListTodo, label: "Tasks", path: "/tasks" },
+  { icon: Settings2, label: "Settings", path: "/settings" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -39,8 +41,10 @@ const MAX_WIDTH = 480;
 
 export default function DashboardLayout({
   children,
+  allowGuest = false,
 }: {
   children: React.ReactNode;
+  allowGuest?: boolean;
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -52,11 +56,11 @@ export default function DashboardLayout({
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
   }, [sidebarWidth]);
 
-  if (loading) {
+  if (loading && !allowGuest) {
     return <DashboardLayoutSkeleton />
   }
 
-  if (!user) {
+  if (!user && !allowGuest) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
@@ -88,7 +92,7 @@ export default function DashboardLayout({
         } as CSSProperties
       }
     >
-      <DashboardLayoutContent setSidebarWidth={setSidebarWidth}>
+      <DashboardLayoutContent setSidebarWidth={setSidebarWidth} allowGuest={allowGuest}>
         {children}
       </DashboardLayoutContent>
     </SidebarProvider>
@@ -98,11 +102,13 @@ export default function DashboardLayout({
 type DashboardLayoutContentProps = {
   children: React.ReactNode;
   setSidebarWidth: (width: number) => void;
+  allowGuest: boolean;
 };
 
 function DashboardLayoutContent({
   children,
   setSidebarWidth,
+  allowGuest,
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -168,8 +174,8 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold tracking-tight truncate">
-                    Navigation
+                    <span className="font-display font-semibold tracking-tight truncate">
+                      Athenaeum
                   </span>
                 </div>
               ) : null}
@@ -200,7 +206,7 @@ function DashboardLayoutContent({
           </SidebarContent>
 
           <SidebarFooter className="p-3">
-            <DropdownMenu>
+            {user ? <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Avatar className="h-9 w-9 border shrink-0">
@@ -227,7 +233,15 @@ function DashboardLayoutContent({
                   <span>Sign out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu> : allowGuest ? <div className="flex items-center gap-3 rounded-lg px-1 py-1 w-full text-left group-data-[collapsible=icon]:justify-center">
+              <Avatar className="h-9 w-9 border shrink-0">
+                <AvatarFallback className="text-xs font-medium">A</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                <p className="text-sm font-medium truncate leading-none">Your school hub</p>
+                <p className="text-xs text-muted-foreground truncate mt-1.5">Saved on this device</p>
+              </div>
+            </div> : null}
           </SidebarFooter>
         </Sidebar>
         <div

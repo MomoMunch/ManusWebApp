@@ -10,3 +10,5 @@
 - [ ] Create a Google Calendar event whenever a scheduled item is added in Athenaeum.
 - [ ] Apply the user's Google Calendar reminder defaults so phone alerts arrive through Google Calendar.
 - [ ] Validate task creation, calendar scheduling, mobile-responsive use, and optional sync guidance.
+- [x] Regenerate pnpm-lock.yaml after the full-stack upgrade and verify a frozen-lockfile install succeeds.
+- [ ] Publish the dependency-lockfile repair to MomoMunch/ManusWebApp for deployment.

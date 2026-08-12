@@ -35,7 +35,7 @@ type Item = {
   category: Category;
   subject: string;
   priority: "Low" | "Normal" | "Important";
-  reminder: "0" | "10" | "30" | "60";
+  reminder: "default" | "0" | "10" | "30" | "60";
   notes: string;
   done: boolean;
   googleEventId?: string;
@@ -65,7 +65,7 @@ function createBlankItem(date: string): Item {
     category: "School",
     subject: "",
     priority: "Normal",
-    reminder: "10",
+    reminder: "default",
     notes: "",
     done: false,
   };
@@ -111,7 +111,7 @@ function QuickAddModal({ initialDate, item, onSave, onClose }: { initialDate: st
     <label className="field-label">What do you need to do?<input autoFocus className="hub-field title" value={draft.title} onChange={(event) => update("title", event.target.value)} placeholder="e.g. Finish biology lab write-up" /></label>
     <div className="two-fields"><label className="field-label">Date<input className="hub-field" type="date" value={draft.date} onChange={(event) => update("date", event.target.value)} /></label><label className="field-label">Start time<input className="hub-field" type="time" value={draft.time} onChange={(event) => update("time", event.target.value)} /></label></div>
     <label className="field-label">Class or subject <span>(optional)</span><input className="hub-field" value={draft.subject} onChange={(event) => update("subject", event.target.value)} placeholder="e.g. Biology, English, Basketball" /></label>
-    <div className="three-fields"><label className="field-label">Category<select className="hub-field" value={draft.category} onChange={(event) => update("category", event.target.value as Category)}>{Object.keys(categoryStyles).map((category) => <option key={category}>{category}</option>)}</select></label><label className="field-label">Priority<select className="hub-field" value={draft.priority} onChange={(event) => update("priority", event.target.value as Item["priority"])}><option>Low</option><option>Normal</option><option>Important</option></select></label><label className="field-label">Reminder<select className="hub-field" value={draft.reminder} onChange={(event) => update("reminder", event.target.value as Item["reminder"])}><option value="0">None</option><option value="10">10 min</option><option value="30">30 min</option><option value="60">1 hour</option></select></label></div>
+    <div className="three-fields"><label className="field-label">Category<select className="hub-field" value={draft.category} onChange={(event) => update("category", event.target.value as Category)}>{Object.keys(categoryStyles).map((category) => <option key={category}>{category}</option>)}</select></label><label className="field-label">Priority<select className="hub-field" value={draft.priority} onChange={(event) => update("priority", event.target.value as Item["priority"])}><option>Low</option><option>Normal</option><option>Important</option></select></label><label className="field-label">Reminder<select className="hub-field" value={draft.reminder} onChange={(event) => update("reminder", event.target.value as Item["reminder"])}><option value="default">Google default</option><option value="0">None</option><option value="10">10 min</option><option value="30">30 min</option><option value="60">1 hour</option></select></label></div>
     <label className="field-label">Notes <span>(optional)</span><textarea className="hub-field hub-notes" value={draft.notes} onChange={(event) => update("notes", event.target.value)} placeholder="Anything you need to remember?" /></label>
     <div className="google-note"><CalendarDays size={15} /><span>Google Calendar will be added automatically after your account is connected.</span></div>
     <div className="modal-actions"><button type="button" className="text-button" onClick={onClose}>Cancel</button><button className="primary-button" type="submit"><Plus size={15} /> {item ? "Save changes" : "Add item"}</button></div>

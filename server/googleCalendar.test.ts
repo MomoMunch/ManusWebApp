@@ -14,6 +14,12 @@ const base = {
 };
 
 describe("Google Calendar event payloads", () => {
+  it("uses the connected calendar's reminder defaults when the user selects Google default", () => {
+    const event = buildGoogleCalendarEvent({ ...base, time: "09:00", reminder: "default" });
+
+    expect(event.reminders).toEqual({ useDefault: true });
+  });
+
   it("creates a timed event with the selected mobile popup reminder", () => {
     const event = buildGoogleCalendarEvent({ ...base, time: "15:30" });
 

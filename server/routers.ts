@@ -30,7 +30,7 @@ export const appRouter = router({
         duration: z.number().int().min(15).max(720),
         category: z.string().min(1).max(80),
         subject: z.string().max(120).optional(),
-        reminder: z.enum(["0", "10", "30", "60"]),
+        reminder: z.enum(["default", "0", "10", "30", "60"]),
         notes: z.string().max(4000).optional(),
         eventId: z.string().optional(),
         timeZone: z.string().min(1).max(100),

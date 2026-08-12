@@ -29,7 +29,7 @@ export type GoogleCalendarEventInput = {
   duration: number;
   category: string;
   subject?: string;
-  reminder: "0" | "10" | "30" | "60";
+  reminder: "default" | "0" | "10" | "30" | "60";
   notes?: string;
   eventId?: string;
   timeZone: string;
@@ -146,7 +146,9 @@ export function buildGoogleCalendarEvent(input: GoogleCalendarEventInput) {
     summary: input.title,
     description: descriptionLines.join("\n"),
     ...dateFields,
-    reminders: reminderMinutes > 0
+    reminders: input.reminder === "default"
+      ? { useDefault: true }
+      : reminderMinutes > 0
       ? { useDefault: false, overrides: [{ method: "popup", minutes: reminderMinutes }] }
       : { useDefault: false, overrides: [] },
     extendedProperties: { private: { athenaeumItemId: input.id } },

@@ -1,0 +1,28 @@
+.connect-google {
+  margin-top: 16px;
+}
+
+.connection-pending.connected {
+  color: #496A52;
+}
+
+.connection-pending.connected i {
+  background: #5A775D;
+  box-shadow: 0 0 0 3px rgba(90, 119, 93, .14);
+}
+
+.callback-copy {
+  margin-top: 13px !important;
+  font-size: 11px !important;
+}
+
+.callback-copy code {
+  display: block;
+  padding: 6px 8px;
+  margin-top: 5px;
+  border-radius: 6px;
+  background: #F3E8D4;
+  color: #6E572A;
+  font: 9px/1.45 "DM Mono", monospace;
+  overflow-wrap: anywhere;
+}

@@ -14,10 +14,12 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import "./day-view.css";
+import "./google-calendar.css";
 import { dayKey, formatDay, formatTime, fromKey, shiftDay } from "./calendarUtils";
+import { trpc } from "@/lib/trpc";
 
 const BRAND_MARK = "/manus-storage/athenaeum-book-leaf-mark_77cfcc0c.png";
 const DESK_TEXTURE = "/manus-storage/athenaeum-reading-room-texture_e7f1ab5b.jpg";
@@ -172,8 +174,8 @@ function TasksView({ items, onToggle, onEdit, onAdd }: { items: Item[]; onToggle
   return <section className="task-board"><div className="board-head"><div><span className="eyebrow">Task tracker</span><h1>Everything you need to do.</h1><p>Capture it once, then let the calendar show you when it matters.</p></div><button className="primary-button" onClick={onAdd}><Plus size={15} /> Add task</button></div><div className="filter-row"><ListFilter size={16} />{(["open", "all", "done"] as TaskFilter[]).map((option) => <button className={filter === option ? "active" : ""} onClick={() => setFilter(option)} key={option}>{option === "open" ? "To do" : option === "done" ? "Completed" : "All"}</button>)}</div><div className="hub-card task-board-list"><SortableItems items={filtered} onToggle={onToggle} onEdit={onEdit} empty={filter === "done" ? "Nothing is checked off yet—your wins will collect here." : "Your list is clear. Add something before it leaves your mind."} /></div></section>;
 }
 
-function SettingsView({ itemCount }: { itemCount: number }) {
-  return <div className="settings-page"><div className="board-head"><div><span className="eyebrow">Hub settings</span><h1>Simple by default.</h1><p>Only the few details that make the rest of your school week easier.</p></div></div><section className="hub-card google-card"><div className="google-icon"><CalendarDays size={22} /></div><div><span className="eyebrow">Google Calendar</span><h2>Phone alerts, handled where you already see them.</h2><p>When the Google connection is activated, every scheduled Athenaeum item will be created in your Google Calendar with the reminder you select.</p><span className="connection-pending"><i /> Awaiting Google authorization</span></div></section><section className="hub-card setting-details"><div><span className="eyebrow">Your board</span><h2>{itemCount} saved item{itemCount === 1 ? "" : "s"}</h2></div><p>Tasks are currently saved to this browser. After Google Calendar authorization, scheduled items will also receive a linked Google Calendar event.</p></section></div>;
+function SettingsView({ itemCount, connected, callbackUrl, onConnect }: { itemCount: number; connected: boolean; callbackUrl?: string; onConnect: () => void }) {
+  return <div className="settings-page"><div className="board-head"><div><span className="eyebrow">Hub settings</span><h1>Simple by default.</h1><p>Only the few details that make the rest of your school week easier.</p></div></div><section className="hub-card google-card"><div className="google-icon"><CalendarDays size={22} /></div><div><span className="eyebrow">Google Calendar</span><h2>Phone alerts, handled where you already see them.</h2><p>{connected ? "Your calendar is connected. New or edited Athenaeum items now create or update a matching event in your primary Google Calendar." : "Connect once and every scheduled Athenaeum item will be created in your Google Calendar with the reminder you select."}</p>{connected ? <span className="connection-pending connected"><i /> Google Calendar connected</span> : <><button className="primary-button connect-google" onClick={onConnect}><CalendarDays size={15} /> Connect Google Calendar</button><span className="connection-pending"><i /> Awaiting Google authorization</span>{callbackUrl && <p className="callback-copy">In Google Cloud, add this redirect URI to the OAuth client: <code>{callbackUrl}</code></p>}</>}</div></section><section className="hub-card setting-details"><div><span className="eyebrow">Your board</span><h2>{itemCount} saved item{itemCount === 1 ? "" : "s"}</h2></div><p>Tasks are saved on this device. Once Google Calendar is connected, scheduled items also keep a linked event reference for future updates.</p></section></div>;
 }
 
 export default function Home() {
@@ -183,14 +185,45 @@ export default function Home() {
   const [editing, setEditing] = useState<Item | undefined>();
   const [isAdding, setIsAdding] = useState(false);
   const [toast, setToast] = useState("");
+  const calendarStatus = trpc.calendar.status.useQuery(undefined, { retry: false });
+  const googleEvent = trpc.calendar.upsertGoogleEvent.useMutation();
   const openAdd = (date = selectedDate) => { setEditing(createBlankItem(date)); setIsAdding(true); };
   const active = location === "/calendar" ? "calendar" : location === "/tasks" ? "tasks" : location === "/settings" ? "settings" : "today";
 
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }, [items]);
   const notify = (text: string) => { setToast(text); window.setTimeout(() => setToast(""), 2600); };
-  const save = (item: Item) => { setItems((current) => current.some((entry) => entry.id === item.id) ? current.map((entry) => entry.id === item.id ? item : entry) : [...current, item]); setSelectedDate(item.date); setIsAdding(false); setEditing(undefined); notify(item.googleEventId ? "Item updated." : "Saved to your Athenaeum board. Google sync is ready for authorization."); };
+  const save = async (item: Item) => {
+    setItems((current) => current.some((entry) => entry.id === item.id) ? current.map((entry) => entry.id === item.id ? item : entry) : [...current, item]);
+    setSelectedDate(item.date);
+    setIsAdding(false);
+    setEditing(undefined);
+    if (!calendarStatus.data?.connected) {
+      notify("Saved to your Athenaeum board. Connect Google Calendar whenever you are ready for phone alerts.");
+      return;
+    }
+    try {
+      const synced = await googleEvent.mutateAsync({
+        id: item.id,
+        title: item.title,
+        date: item.date,
+        time: item.time,
+        duration: item.duration,
+        category: item.category,
+        subject: item.subject || undefined,
+        reminder: item.reminder,
+        notes: item.notes || undefined,
+        eventId: item.googleEventId,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      });
+      setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, googleEventId: synced.eventId } : entry));
+      notify("Saved to Athenaeum and Google Calendar.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Saved to Athenaeum, but Google Calendar needs attention.";
+      notify(`Saved to Athenaeum. ${message}`);
+    }
+  };
   const toggle = (id: string) => setItems((current) => current.map((item) => item.id === id ? { ...item, done: !item.done } : item));
   const edit = (item: Item) => { setEditing(item); setIsAdding(true); };
 
-  return <DashboardLayout allowGuest><div className="school-shell"><header className="school-topbar"><div className="brand-inline"><img src={BRAND_MARK} alt="" /><div><strong>Athenaeum</strong><span>School hub</span></div></div><div className="top-actions"><button className="icon-top" onClick={() => setLocation("/settings")} aria-label="Hub settings"><Settings2 size={18} /></button><button className="primary-button compact" onClick={() => openAdd()}><Plus size={15} /> Add</button></div></header><nav className="mobile-hub-nav"><button onClick={() => setLocation("/")} className={active === "today" ? "active" : ""}>Today</button><button onClick={() => setLocation("/calendar")} className={active === "calendar" ? "active" : ""}>Calendar</button><button onClick={() => setLocation("/tasks")} className={active === "tasks" ? "active" : ""}>Tasks</button></nav>{active === "today" && <TodayView items={items} onToggle={toggle} onEdit={edit} onAdd={() => openAdd()} setLocation={setLocation} />}{active === "calendar" && <CalendarView items={items} selectedDate={selectedDate} setSelectedDate={setSelectedDate} onToggle={toggle} onEdit={edit} onAdd={openAdd} />}{active === "tasks" && <TasksView items={items} onToggle={toggle} onEdit={edit} onAdd={() => openAdd()} />}{active === "settings" && <SettingsView itemCount={items.length} />}</div><AnimatePresence>{isAdding && editing && <QuickAddModal initialDate={selectedDate} item={editing.title ? editing : undefined} onSave={save} onClose={() => { setIsAdding(false); setEditing(undefined); }} />}</AnimatePresence>{toast && <div className="hub-toast"><CheckCircle2 size={16} />{toast}</div>}</DashboardLayout>;
+  return <DashboardLayout allowGuest><div className="school-shell"><header className="school-topbar"><div className="brand-inline"><img src={BRAND_MARK} alt="" /><div><strong>Athenaeum</strong><span>School hub</span></div></div><div className="top-actions"><button className="icon-top" onClick={() => setLocation("/settings")} aria-label="Hub settings"><Settings2 size={18} /></button><button className="primary-button compact" onClick={() => openAdd()}><Plus size={15} /> Add</button></div></header><nav className="mobile-hub-nav"><button onClick={() => setLocation("/")} className={active === "today" ? "active" : ""}>Today</button><button onClick={() => setLocation("/calendar")} className={active === "calendar" ? "active" : ""}>Calendar</button><button onClick={() => setLocation("/tasks")} className={active === "tasks" ? "active" : ""}>Tasks</button></nav>{active === "today" && <TodayView items={items} onToggle={toggle} onEdit={edit} onAdd={() => openAdd()} setLocation={setLocation} />}{active === "calendar" && <CalendarView items={items} selectedDate={selectedDate} setSelectedDate={setSelectedDate} onToggle={toggle} onEdit={edit} onAdd={openAdd} />}{active === "tasks" && <TasksView items={items} onToggle={toggle} onEdit={edit} onAdd={() => openAdd()} />}{active === "settings" && <SettingsView itemCount={items.length} connected={Boolean(calendarStatus.data?.connected)} callbackUrl={calendarStatus.data?.callbackUrl} onConnect={() => { window.location.assign("/api/integrations/google/connect"); }} />}</div><AnimatePresence>{isAdding && editing && <QuickAddModal initialDate={selectedDate} item={editing.title ? editing : undefined} onSave={save} onClose={() => { setIsAdding(false); setEditing(undefined); }} />}</AnimatePresence>{toast && <div className="hub-toast"><CheckCircle2 size={16} />{toast}</div>}</DashboardLayout>;
 }

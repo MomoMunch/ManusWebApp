@@ -2,6 +2,8 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { getGoogleCalendarStatus, upsertGoogleCalendarEvent } from "./googleCalendar";
+import { z } from "zod";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -15,6 +17,25 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+  }),
+
+  calendar: router({
+    status: publicProcedure.query(({ ctx }) => getGoogleCalendarStatus(ctx.req)),
+    upsertGoogleEvent: publicProcedure
+      .input(z.object({
+        id: z.string().min(1),
+        title: z.string().min(1).max(300),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        time: z.string().regex(/^\d{2}:\d{2}$/).or(z.literal("")),
+        duration: z.number().int().min(15).max(720),
+        category: z.string().min(1).max(80),
+        subject: z.string().max(120).optional(),
+        reminder: z.enum(["0", "10", "30", "60"]),
+        notes: z.string().max(4000).optional(),
+        eventId: z.string().optional(),
+        timeZone: z.string().min(1).max(100),
+      }))
+      .mutation(({ ctx, input }) => upsertGoogleCalendarEvent(ctx.req, input)),
   }),
 
   // TODO: add feature routers here, e.g.

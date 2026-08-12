@@ -22,7 +22,24 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+/**
+ * An opaque browser connection id owns a Google Calendar authorization. The
+ * actual browser receives only the id in a secure httpOnly cookie; OAuth
+ * tokens remain encrypted in the database and are never sent to the client.
+ */
+export const googleCalendarConnections = mysqlTable("googleCalendarConnections", {
+  connectionId: varchar("connectionId", { length: 64 }).primaryKey(),
+  encryptedAccessToken: text("encryptedAccessToken").notNull(),
+  encryptedRefreshToken: text("encryptedRefreshToken"),
+  tokenExpiresAt: timestamp("tokenExpiresAt"),
+  calendarId: varchar("calendarId", { length: 320 }).default("primary").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+export type GoogleCalendarConnection = typeof googleCalendarConnections.$inferSelect;
+export type InsertGoogleCalendarConnection = typeof googleCalendarConnections.$inferInsert;
 
 // TODO: Add your tables here

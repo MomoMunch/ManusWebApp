@@ -1,6 +1,12 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  GoogleCalendarConnection,
+  InsertGoogleCalendarConnection,
+  InsertUser,
+  googleCalendarConnections,
+  users,
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -87,6 +93,26 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getGoogleCalendarConnection(connectionId: string): Promise<GoogleCalendarConnection | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(googleCalendarConnections).where(eq(googleCalendarConnections.connectionId, connectionId)).limit(1);
+  return result[0];
+}
+
+export async function upsertGoogleCalendarConnection(connection: InsertGoogleCalendarConnection): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable while saving Google Calendar connection");
+  await db.insert(googleCalendarConnections).values(connection).onDuplicateKeyUpdate({
+    set: {
+      encryptedAccessToken: connection.encryptedAccessToken,
+      encryptedRefreshToken: connection.encryptedRefreshToken,
+      tokenExpiresAt: connection.tokenExpiresAt,
+      calendarId: connection.calendarId,
+    },
+  });
 }
 
 // TODO: add feature queries here as your schema grows.
